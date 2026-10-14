@@ -12,4 +12,39 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.23.x'
-      - run: go test ./...
+
+      - name: Unit tests
+        run: go test ./...
+
+      - name: Build ddcheck
+        run: go build -o ./bin/ddcheck ./cmd/ddcheck
+
+      - name: Check version contract
+        run: test "$(./bin/ddcheck -version)" = "ddcheck 0.2.0"
+
+      - name: Validate customer example
+        run: ./bin/ddcheck -dictionary examples/customer/dictionary.json -record examples/customer/valid-record.json
+
+      - name: Reject invalid customer example with validation exit code
+        shell: bash
+        run: |
+          set +e
+          ./bin/ddcheck -dictionary examples/customer/dictionary.json -record examples/customer/invalid-record.json
+          code=$?
+          set -e
+          test "$code" -eq 1
+
+      - name: Validate supplier example
+        run: ./bin/ddcheck -dictionary examples/supplier/dictionary.json -record examples/supplier/valid-record.json
+
+      - name: Reject invalid supplier example with validation exit code
+        shell: bash
+        run: |
+          set +e
+          ./bin/ddcheck -dictionary examples/supplier/dictionary.json -record examples/supplier/invalid-record.json
+          code=$?
+          set -e
+          test "$code" -eq 1
+
+      - name: Check JSON Schema syntax
+        run: python -m json.tool schema/dictionary.schema.json >/dev/null
