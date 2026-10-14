@@ -1,0 +1,58 @@
+{
+  "name": "supplier",
+  "version": "1.0.0",
+  "description": "Governed dictionary for an enterprise supplier master record.",
+  "data_owner": "Chief Procurement Officer",
+  "data_steward": "Supplier Data Steward",
+  "source_of_truth": "ERP supplier master",
+  "grain": "one record per enterprise supplier",
+  "unknown_fields": "reject",
+  "fields": [
+    {
+      "name": "supplier_id",
+      "definition": "Stable enterprise identifier for one supplier; never reused.",
+      "type": "string",
+      "required": true,
+      "nullable": false,
+      "source": "ERP.supplier_id",
+      "example": "SUP-2048"
+    },
+    {
+      "name": "legal_name",
+      "definition": "Current legal name of the supplier recorded in the enterprise supplier master.",
+      "type": "string",
+      "required": true,
+      "nullable": false,
+      "source": "ERP.legal_name",
+      "example": "North Shore Technology Pty Ltd"
+    },
+    {
+      "name": "risk_tier",
+      "definition": "Current enterprise supplier risk classification.",
+      "type": "string",
+      "required": true,
+      "nullable": false,
+      "allowed_values": ["low", "medium", "high", "critical"],
+      "source": "ThirdPartyRisk.current_tier",
+      "example": "high"
+    },
+    {
+      "name": "active_contract_count",
+      "definition": "Number of active enterprise contracts currently associated with the supplier.",
+      "type": "integer",
+      "required": true,
+      "nullable": false,
+      "source": "ContractRegister.active_contract_count",
+      "example": 3
+    },
+    {
+      "name": "strategic",
+      "definition": "Whether the supplier is formally designated as strategic under the current supplier-management framework.",
+      "type": "boolean",
+      "required": true,
+      "nullable": false,
+      "source": "SupplierManagement.strategic_flag",
+      "example": true
+    }
+  ]
+}
