@@ -1,0 +1,49 @@
+{
+  "name": "customer",
+  "version": "1.0.0",
+  "description": "Minimal governed dictionary for a canonical customer record.",
+  "data_owner": "Head of Customer",
+  "data_steward": "Customer Data Steward",
+  "source_of_truth": "CRM customer master",
+  "grain": "one record per enterprise customer",
+  "unknown_fields": "reject",
+  "fields": [
+    {
+      "name": "customer_id",
+      "definition": "Stable enterprise identifier for one customer; never reused.",
+      "type": "string",
+      "required": true,
+      "nullable": false,
+      "source": "CRM.customer_id",
+      "example": "C-10492"
+    },
+    {
+      "name": "legal_name",
+      "definition": "Current legal name recorded by the customer master.",
+      "type": "string",
+      "required": true,
+      "nullable": false,
+      "source": "CRM.legal_name",
+      "example": "Northwind Pty Ltd"
+    },
+    {
+      "name": "status",
+      "definition": "Current lifecycle status of the customer relationship.",
+      "type": "string",
+      "required": true,
+      "nullable": false,
+      "allowed_values": ["prospect", "active", "inactive", "closed"],
+      "source": "CRM.status",
+      "example": "active"
+    },
+    {
+      "name": "credit_limit",
+      "definition": "Current approved credit limit in Australian dollars; null when no credit facility exists.",
+      "type": "number",
+      "required": false,
+      "nullable": true,
+      "source": "Credit.approved_limit",
+      "example": 25000
+    }
+  ]
+}
