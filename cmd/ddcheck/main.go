@@ -4,36 +4,79 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/jonathanselby/data-dictionary-first/internal/dictionary"
 )
 
+const version = "0.2.0"
+
+const (
+	exitOK         = 0
+	exitValidation = 1
+	exitUsage      = 2
+	exitRuntime    = 3
+)
+
 func main() {
-	dictPath := flag.String("dictionary", "", "path to dictionary JSON")
-	recordPath := flag.String("record", "", "optional path to JSON record to validate")
-	flag.Parse()
-	if *dictPath == "" {
-		fmt.Fprintln(os.Stderr, "-dictionary is required")
-		os.Exit(2)
+	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
+}
+
+func run(args []string, stdout, stderr io.Writer) int {
+	fs := flag.NewFlagSet("ddcheck", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+
+	dictPath := fs.String("dictionary", "", "path to dictionary JSON")
+	recordPath := fs.String("record", "", "optional path to JSON record to validate")
+	showVersion := fs.Bool("version", false, "print ddcheck version")
+
+	if err := fs.Parse(args); err != nil {
+		return exitUsage
 	}
+	if *showVersion {
+		fmt.Fprintf(stdout, "ddcheck %s\n", version)
+		return exitOK
+	}
+	if *dictPath == "" {
+		fmt.Fprintln(stderr, "-dictionary is required")
+		fs.Usage()
+		return exitUsage
+	}
+
 	d, err := dictionary.Load(*dictPath)
-	if err != nil { fail(err) }
+	if err != nil {
+		writeError(stdout, err)
+		return exitRuntime
+	}
 	result := dictionary.Check(d)
 	if *recordPath != "" && result.Valid {
 		b, err := os.ReadFile(*recordPath)
-		if err != nil { fail(err) }
+		if err != nil {
+			writeError(stdout, err)
+			return exitRuntime
+		}
 		var record map[string]any
-		if err := json.Unmarshal(b, &record); err != nil { fail(err) }
+		if err := json.Unmarshal(b, &record); err != nil {
+			writeError(stdout, err)
+			return exitRuntime
+		}
 		result = dictionary.ValidateRecord(d, record)
 	}
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "  ")
-	_ = enc.Encode(result)
-	if !result.Valid { os.Exit(1) }
+
+	writeJSON(stdout, result)
+	if !result.Valid {
+		return exitValidation
+	}
+	return exitOK
 }
 
-func fail(err error) {
-	_ = json.NewEncoder(os.Stdout).Encode(map[string]string{"error": err.Error()})
-	os.Exit(1)
+func writeJSON(w io.Writer, v any) {
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	_ = enc.Encode(v)
+}
+
+func writeError(w io.Writer, err error) {
+	writeJSON(w, map[string]string{"error": err.Error()})
 }
