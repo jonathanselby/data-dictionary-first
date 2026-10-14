@@ -1,81 +1,110 @@
-DATA DICTIONARY FIRST
-=====================
+DATA DICTIONARY FIRST — V0.2
+============================
 
-Governance path
----------------
+Purpose
+-------
 
- BUSINESS MEANING
-       |
-       v
-+-------------------+
-| DATA DICTIONARY   |
-|-------------------|
-| grain             |
-| owner / steward   |
-| source of truth   |
-| field definitions |
-| runtime rules     |
-+---------+---------+
-          |
-          v
-+-------------------+
-|     DDCHECK       |
-| deterministic     |
-| validation        |
-+---------+---------+
-          |
-     +----+----+
-     |         |
-   valid     invalid
-     |         |
-     v         v
-  proceed   reject / explicit issues
+A governed dictionary is both human-readable semantics and an executable
+contract. V0.2 adds the adoption boundary: a formal external schema, stable
+CLI behaviour, cross-domain examples and automated acceptance tests.
 
 
-Decision boundary
------------------
+Contract and runtime
+--------------------
 
-STABLE FIELD SEMANTICS
+        +--------------------------------+
+        | schema/dictionary.schema.json  |
+        | JSON Schema Draft 2020-12      |
+        +---------------+----------------+
+                        |
+                        | describes contract for
+                        v
+              +-------------------+
+              |  dictionary.json  |
+              +---------+---------+
+                        |
+                        v
+              +-------------------+
+              |      ddcheck      |
+              | CLI + file loader |
+              +---------+---------+
+                        |
+                        v
+              +-------------------+
+              | Dictionary.Check  |
+              +---------+---------+
+                        |
+                 dictionary valid?
+                    /       \
+                   no        yes
+                   |          |
+                   v          +----------------------+
+             issues + exit 1                         |
+                                                     v
+                                           optional record.json
+                                                     |
+                                                     v
+                                            ValidateRecord(...)
+                                                     |
+                                              +------+------+
+                                              |             |
+                                            valid         invalid
+                                              |             |
+                                              v             v
+                                          exit 0       issues + exit 1
+
+CLI / execution failures
+------------------------
+
+invalid CLI usage -------------------------------> exit 2
+file I/O / malformed JSON / runtime input ------> exit 3
+
+This distinction means pipelines can separate invalid governed data from data
+that could not be evaluated.
+
+
+Cross-domain proof
+------------------
+
++------------------+                         +------------------+
+| CUSTOMER         |                         | SUPPLIER         |
+| dictionary       |                         | dictionary       |
+| + records        |                         | + records        |
++--------+---------+                         +--------+---------+
+         |                                            |
+         +--------------------+-----------------------+
+                              |
+                              v
+                         +---------+
+                         | ddcheck |
+                         +---------+
+
+The validator is domain-neutral. Business semantics remain in the dictionary.
+
+
+Semantic escalation boundary
+----------------------------
+
+DATA CONTRACT QUESTION
         |
         v
-RUN IN REAL CONTRACTS
+dictionary + deterministic validation
         |
-        +-- field/data-contract questions remain dominant
-        |          |
-        |          v
-        |      KEEP IT SMALL
+        +-- sufficient -----------------> stop
         |
-        +-- relationships, equivalence, hierarchy or inference
-                   become dominant
-                   |
-                   v
-             EVALUATE RDF / GRAPH / ONTOLOGY
+        +-- relationships / inference
+             are now the problem --------> graph / ontology evaluation
 
 
-Runtime flow
-------------
+Engineering boundary
+--------------------
 
- dictionary.json
-      |
-      v
- LOAD + PARSE
-      |
-      v
- CHECK DICTIONARY
-      |
-      +-- bad governance/structure ---> structured failure
-      |
-      v
- optional record.json
-      |
-      v
- VALIDATE RECORD
-      |
-      +-- required
-      +-- nullable
-      +-- type
-      +-- allowed values
-      +-- unknown fields
-      |
-      v
- structured result + process exit status
+The dictionary is not documentation beside the system.
+
+If a semantic rule matters operationally and can be expressed
+deterministically, make it executable.
+
+V0.2 adds a second rule:
+
+If an engineering artefact is meant to be adopted, installation, contract
+shape and failure behaviour must be recoverable without its author present.
