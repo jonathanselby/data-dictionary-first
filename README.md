@@ -8,6 +8,8 @@ The thesis is deliberately narrower than "ontologies are bad":
 
 > **Start with the smallest semantic structure that can make the data unambiguous and operable. Escalate to an ontology when relationships, inference or graph semantics are genuinely part of the problem.**
 
+V0.2 moves the repository from a reference implementation to an engineer-usable utility: the dictionary format now has a formal JSON Schema, the CLI has a stable exit-code contract and version command, there are examples from two domains, and CI exercises the examples as acceptance tests.
+
 A useful data dictionary is not a spreadsheet of column names and types. It should establish, at minimum:
 
 - what one record represents;
@@ -82,21 +84,48 @@ What values are legitimate?      -> allowed_values
 What happens to undeclared data? -> unknown_fields policy
 ```
 
-## Run it
+## Install
 
 Requires Go 1.23+.
+
+Install the current main branch:
+
+```bash
+go install github.com/jonathanselby/data-dictionary-first/cmd/ddcheck@main
+```
+
+Once the `v0.2.0` GitHub tag is created, install the pinned release with:
+
+```bash
+go install github.com/jonathanselby/data-dictionary-first/cmd/ddcheck@v0.2.0
+```
+
+Check the binary:
+
+```bash
+ddcheck -version
+```
+
+Expected output:
+
+```text
+ddcheck 0.2.0
+```
+
+See [`USAGE.md`](USAGE.md) for the full engineer adoption guide.
+
+## Run it
 
 Check the dictionary itself:
 
 ```bash
-go run ./cmd/ddcheck \
-  -dictionary examples/customer/dictionary.json
+ddcheck -dictionary examples/customer/dictionary.json
 ```
 
-Validate a good record:
+Validate a good customer record:
 
 ```bash
-go run ./cmd/ddcheck \
+ddcheck \
   -dictionary examples/customer/dictionary.json \
   -record examples/customer/valid-record.json
 ```
@@ -109,10 +138,10 @@ Result:
 }
 ```
 
-Validate a bad record:
+Validate a bad customer record:
 
 ```bash
-go run ./cmd/ddcheck \
+ddcheck \
   -dictionary examples/customer/dictionary.json \
   -record examples/customer/invalid-record.json
 ```
@@ -141,6 +170,35 @@ Result:
   ]
 }
 ```
+
+The supplier example exercises the same validator against a different business domain and adds integer and boolean fields:
+
+```bash
+ddcheck \
+  -dictionary examples/supplier/dictionary.json \
+  -record examples/supplier/valid-record.json
+```
+
+## Stable exit codes
+
+`ddcheck` is designed to sit in normal engineering automation.
+
+| Code | Meaning |
+|---:|---|
+| `0` | validation passed or version command succeeded |
+| `1` | governed dictionary/record validation failed |
+| `2` | invalid CLI usage |
+| `3` | file I/O, malformed JSON or other runtime-input failure |
+
+This distinction matters in pipelines: invalid business data is not the same failure as being unable to read or parse the input.
+
+## Formal dictionary contract
+
+The dictionary format is formally described in [`schema/dictionary.schema.json`](schema/dictionary.schema.json), using JSON Schema Draft 2020-12.
+
+That allows editors, generators, documentation systems and independent validation tooling to understand the contract without importing the Go implementation.
+
+`ddcheck` remains the reference runtime validator for the repository.
 
 ## The escalation test
 
@@ -179,6 +237,7 @@ Those are not competing ideas. They solve different levels of semantic complexit
 ```text
 data-dictionary-first/
 ├── README.md
+├── USAGE.md
 ├── THESIS.md
 ├── PRD.md
 ├── EDD.md
@@ -188,9 +247,12 @@ data-dictionary-first/
 ├── CHANGELOG.md
 ├── LICENSE
 ├── go.mod
+├── schema/
+│   └── dictionary.schema.json
 ├── cmd/
 │   └── ddcheck/
-│       └── main.go
+│       ├── main.go
+│       └── main_test.go
 ├── internal/
 │   └── dictionary/
 │       ├── types.go
@@ -198,6 +260,10 @@ data-dictionary-first/
 │       └── validate_test.go
 ├── examples/
 │   ├── customer/
+│   │   ├── dictionary.json
+│   │   ├── valid-record.json
+│   │   └── invalid-record.json
+│   ├── supplier/
 │   │   ├── dictionary.json
 │   │   ├── valid-record.json
 │   │   └── invalid-record.json
