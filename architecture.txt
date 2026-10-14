@@ -1,0 +1,81 @@
+DATA DICTIONARY FIRST
+=====================
+
+Governance path
+---------------
+
+ BUSINESS MEANING
+       |
+       v
++-------------------+
+| DATA DICTIONARY   |
+|-------------------|
+| grain             |
+| owner / steward   |
+| source of truth   |
+| field definitions |
+| runtime rules     |
++---------+---------+
+          |
+          v
++-------------------+
+|     DDCHECK       |
+| deterministic     |
+| validation        |
++---------+---------+
+          |
+     +----+----+
+     |         |
+   valid     invalid
+     |         |
+     v         v
+  proceed   reject / explicit issues
+
+
+Decision boundary
+-----------------
+
+STABLE FIELD SEMANTICS
+        |
+        v
+RUN IN REAL CONTRACTS
+        |
+        +-- field/data-contract questions remain dominant
+        |          |
+        |          v
+        |      KEEP IT SMALL
+        |
+        +-- relationships, equivalence, hierarchy or inference
+                   become dominant
+                   |
+                   v
+             EVALUATE RDF / GRAPH / ONTOLOGY
+
+
+Runtime flow
+------------
+
+ dictionary.json
+      |
+      v
+ LOAD + PARSE
+      |
+      v
+ CHECK DICTIONARY
+      |
+      +-- bad governance/structure ---> structured failure
+      |
+      v
+ optional record.json
+      |
+      v
+ VALIDATE RECORD
+      |
+      +-- required
+      +-- nullable
+      +-- type
+      +-- allowed values
+      +-- unknown fields
+      |
+      v
+ structured result + process exit status
