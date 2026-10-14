@@ -9,6 +9,8 @@ It has two responsibilities:
 1. validate that the dictionary itself contains the minimum governed semantics expected by this project;
 2. optionally validate a JSON record against the dictionary's deterministic runtime rules.
 
+V0.2 adds the engineer-adoption layer around that core: a formal JSON Schema, stable CLI exit codes, version reporting, a second business-domain example, and CI acceptance tests.
+
 It is not a metadata platform or ontology engine.
 
 ## 2. Design principles
@@ -18,10 +20,18 @@ It is not a metadata platform or ontology engine.
 3. **Governance must have runtime consequences.** Important constraints should be testable.
 4. **Keep the core small.** The implementation uses only the Go standard library.
 5. **Do not turn the dictionary into an ontology.** Escalate rather than accumulating graph semantics into the wrong abstraction.
+6. **Engineer handoff is part of the design.** Contract shape, installation and failure behaviour must be recoverable from the repository without author explanation.
 
 ## 3. Component model
 
 ```text
++----------------------------+
+| dictionary.schema.json     |
+| formal external contract   |
++-------------+--------------+
+              |
+              | describes
+              v
 +-------------------+
 |   dictionary.json |
 +---------+---------+
@@ -29,7 +39,8 @@ It is not a metadata platform or ontology engine.
           v
 +-------------------+
 |      ddcheck      |
-|  CLI / file load  |
+| CLI / file load   |
+| version/exit code |
 +---------+---------+
           |
           v
@@ -43,7 +54,7 @@ It is not a metadata platform or ontology engine.
       |             |
       v             +--------------------+
 FAILED ISSUES                            |
-                                        v
+ exit 1                                 v
                               optional record.json
                                         |
                                         v
@@ -55,7 +66,10 @@ FAILED ISSUES                            |
                                   |           |
                                   v           v
                               SUCCESS     FAILED ISSUES
+                               exit 0       exit 1
 ```
+
+Usage/parse/file failures sit outside governed validation and return their own exit codes.
 
 ## 4. Dictionary model
 
@@ -97,6 +111,8 @@ object
 array
 ```
 
+The formal representation of this contract is `schema/dictionary.schema.json` using JSON Schema Draft 2020-12.
+
 ## 5. Dictionary validation
 
 `Check()` validates the dictionary before runtime data is considered.
@@ -116,6 +132,8 @@ It checks:
 
 A bad dictionary is not used to validate records.
 
+The JSON Schema is an integration artefact for editors, generators and independent validators; `Check()` remains the reference runtime validation behaviour for this repository.
+
 ## 6. Record validation
 
 `ValidateRecord()` applies the validated dictionary to one decoded JSON object.
@@ -131,9 +149,30 @@ If `unknown_fields` is `reject`, undeclared fields also fail validation.
 
 The validator does not coerce values. A semantic contract should not silently turn an invalid producer into a valid one.
 
-## 7. Failure model
+## 7. CLI contract
 
-All semantic failures are returned as structured issues:
+`ddcheck` supports:
+
+```text
+-dictionary <path>
+-record <path>       optional
+-version
+```
+
+The exit-code contract is stable and deliberately separates governed validation from execution failures:
+
+```text
+0  valid dictionary/record, or successful version command
+1  governed validation failure
+2  invalid CLI usage
+3  file I/O, malformed JSON or runtime-input failure
+```
+
+This makes the binary suitable for normal CI/CD and data-ingestion gates: an invalid business record is distinguishable from an unevaluable record.
+
+## 8. Failure model
+
+Semantic failures are returned as structured issues:
 
 ```json
 {
@@ -143,17 +182,26 @@ All semantic failures are returned as structured issues:
 }
 ```
 
-The CLI exits non-zero for an invalid dictionary or record.
+Execution failures are returned as structured error JSON and exit `3`.
 
-File and JSON parsing errors are returned as explicit execution errors.
+CLI usage errors are written to stderr and exit `2`.
 
-## 8. State and persistence
+## 9. Examples and reuse proof
+
+V0.2 ships two domain examples:
+
+- `customer` — identity, lifecycle status and optional numeric credit limit;
+- `supplier` — identity, governed risk tier, integer contract count and boolean strategic flag.
+
+The same binary and dictionary model validate both. The examples are acceptance-tested in GitHub Actions so documentation and executable behaviour cannot drift silently.
+
+## 10. State and persistence
 
 There is no persistent runtime state.
 
 The dictionary and record are read from files into process memory, validated, printed as JSON and discarded.
 
-## 9. Security boundary
+## 11. Security boundary
 
 - file paths are user-controlled local inputs;
 - the tool does not make network calls;
@@ -161,19 +209,21 @@ The dictionary and record are read from files into process memory, validated, pr
 - no data is persisted by the tool;
 - input data may still be sensitive, so shell/output handling remains an operator responsibility.
 
-## 10. Operational behaviour
+## 12. Operational behaviour
 
 - single-process CLI;
 - Go standard library only;
 - deterministic validation;
 - structured JSON output;
-- non-zero exit on validation failure;
+- explicit version output;
+- stable automation-friendly exit codes;
 - no retries because there are no remote dependencies;
-- GitHub Actions executes the unit tests.
+- installable with normal `go install` semantics;
+- GitHub Actions runs unit tests, builds the binary, checks version behaviour, runs both valid examples and asserts both invalid examples fail with exit code `1`.
 
-## 11. Deliberate limitations
+## 13. Deliberate limitations
 
-V0.1 does not implement:
+V0.2 does not implement:
 
 - nested field schemas beyond primitive `object`/`array` type checks;
 - patterns or numeric ranges;
@@ -182,11 +232,12 @@ V0.1 does not implement:
 - relationship semantics;
 - lineage;
 - inference;
-- compatibility/version migration rules.
+- compatibility/version migration rules;
+- remote registry/catalogue APIs.
 
 Some of those could be sensible future dictionary features. Others are signals that the problem has moved into a different abstraction.
 
-## 12. Architecture boundary
+## 14. Architecture boundary
 
 The key boundary is:
 
@@ -203,3 +254,9 @@ dictionary + deterministic validation
 ```
 
 This boundary is more important than the validator itself.
+
+## 15. Release boundary
+
+V0.1 proved the thesis and core validator.
+
+V0.2 exists because a good engineering artefact should be usable without its author present. The release therefore focuses on adoption mechanics rather than adding semantic complexity.
