@@ -1,5 +1,7 @@
 # Data Dictionary First
 
+[![test](https://github.com/jonathanselby/data-dictionary-first/actions/workflows/test.yml/badge.svg)](https://github.com/jonathanselby/data-dictionary-first/actions/workflows/test.yml)
+
 **Define the data before you model the universe.**
 
 `data-dictionary-first` is a practical argument for establishing governed data definitions and executable runtime semantics before committing to an enterprise ontology.
@@ -86,7 +88,7 @@ What happens to undeclared data? -> unknown_fields policy
 
 ## Install
 
-Requires Go 1.23+.
+Requires Go 1.26+.
 
 Install the current main branch:
 
