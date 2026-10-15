@@ -94,7 +94,7 @@ Install the current main branch:
 go install github.com/jonathanselby/data-dictionary-first/cmd/ddcheck@main
 ```
 
-Once the `v0.2.0` GitHub tag is created, install the pinned release with:
+Install the pinned release:
 
 ```bash
 go install github.com/jonathanselby/data-dictionary-first/cmd/ddcheck@v0.2.0
