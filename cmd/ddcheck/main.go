@@ -51,13 +51,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 	result := dictionary.Check(d)
 	if *recordPath != "" && result.Valid {
-		b, err := os.ReadFile(*recordPath)
+		record, err := dictionary.LoadRecord(*recordPath)
 		if err != nil {
-			writeError(stdout, err)
-			return exitRuntime
-		}
-		var record map[string]any
-		if err := json.Unmarshal(b, &record); err != nil {
 			writeError(stdout, err)
 			return exitRuntime
 		}

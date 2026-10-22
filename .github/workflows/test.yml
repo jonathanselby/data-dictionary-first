@@ -13,6 +13,15 @@ jobs:
         with:
           go-version: '1.26.x'
 
+      - name: Check formatting
+        shell: bash
+        run: |
+          files="$(gofmt -l .)"
+          if [ -n "$files" ]; then
+            echo "$files"
+            exit 1
+          fi
+
       - name: Vet
         run: go vet ./...
 
